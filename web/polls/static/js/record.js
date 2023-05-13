@@ -1,4 +1,4 @@
-class VoiceRecording {}
+// class VoiceRecording {}
 
 const $audioEl = document.getElementById("audio");
 const $btn = document.getElementById("record");
@@ -7,6 +7,15 @@ const $uploadBtn = document.getElementById("upload");
 let isRecording = false;
 const audioArray = [];
 let mediaRecorder = null;
+
+class VoiceRecording {
+  constructor(id, audio_file, uploaded_at, gender) {
+    this.id = id;
+    this.audio_file = audio_file;
+    this.uploaded_at = uploaded_at;
+    this.gender = gender;
+  }
+}
 
 function stopRecording() {
   if (mediaRecorder && mediaRecorder.state !== "inactive") {
@@ -32,6 +41,8 @@ $btn.onclick = async function (event) {
     mediaRecorder.onstop = stopRecording;
 
     isRecording = true;
+    $btn.disabled = true;
+    $stopBtn.disabled = false;
   } else {
     stopRecording();
   }
@@ -40,6 +51,8 @@ $btn.onclick = async function (event) {
 $stopBtn.onclick = function (event) {
   if (isRecording) {
     stopRecording();
+    $btn.disabled = false;
+    $stopBtn.disabled = true;
   }
 };
 
@@ -61,8 +74,19 @@ $uploadBtn.onclick = async function (event) {
   if (audioArray.length > 0) {
     const blob = new Blob(audioArray, { type: "audio/wav; codecs=opus" });
     const formData = new FormData();
-    formData.append("audio_file", blob, Date.now().toString() + ".webm"); // 파일 이름 동적으로 지정
+    formData.append("audio_file", blob, Date.now().toString() + ".webm");
 
+    const genderInputs = document.querySelectorAll(
+      'input[name="gender"]:checked'
+    );
+    if (genderInputs.length > 0) {
+      const gender = genderInputs[0].value;
+      formData.append("gender", gender);
+      console.log(gender);
+    } else {
+      console.error("Gender is not selected.");
+      return;
+    }
     try {
       const csrfToken = document.cookie.match(/csrftoken=([\w-]+)/)[1];
       const response = await fetch("/polls/recording/", {
@@ -79,9 +103,10 @@ $uploadBtn.onclick = async function (event) {
         const recording = new VoiceRecording(
           responseData.id,
           responseData.audio_file,
-          responseData.uploaded_at
+          response.uploaded_at,
+          responseData.gender
         );
-        //recordingList.push(recording);
+        // recordingList.push(recording);
       } else {
         console.error("File upload failed with status", response.status);
       }

@@ -54,6 +54,16 @@ $uploadBtn.onclick = async function (event) {
   const formData = new FormData();
   formData.append("audio", blob, "recorded_audio.webm");
 
+  const genderInputs = document.querySelectorAll(
+    'input[name="gender"]:checked'
+  );
+  if (genderInputs.length > 0) {
+    const gender = genderInputs[0].value === "female" ? "female" : "male";
+    formData.append("gender", gender);
+  } else {
+    formData.append("gender", ""); // 선택된 gender가 없을 경우 빈 문자열로 추가
+  }
+
   try {
     const response = await fetch("/recording", {
       method: "POST",
