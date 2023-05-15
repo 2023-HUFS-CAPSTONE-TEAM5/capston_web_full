@@ -11,5 +11,4 @@ urlpatterns = [
     path("mypage/", views.mypage, name="mypage"),
     path("recording/", views.recording, name="recording"),
     path("signUp/", views.signUp, name="signUp"),
-    path("test/", views.temp, name="test"),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

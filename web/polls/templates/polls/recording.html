@@ -17,6 +17,56 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css"
     />
   </head>
+  <script src="http://code.jquery.com/jquery-latest.min.js"></script>
+  <script>
+      $(document).ready(function() {
+
+      $('#loading').hide();
+      $('#lodingBtn').click(function(){
+          $('#loading').show();
+          console.log("실행중")
+          setTimeout(" $('#loading').hide()", 3000); 
+          console.log("실행끝")
+          setTimeout("ozit_timer_test()", 3000);           
+          return true;
+          });
+      });
+
+
+      function ozit_timer_test(){
+        var link = '../analysis/';
+        location.href=link;
+      };
+  </script>
+  <style>
+    /* page-loading */
+  #loading {
+     width: 100%;
+     height: 100%;
+     top: 0;
+     position: fixed;
+     display: block;
+     opacity: 0.6;
+     background: #e4e4e4;
+     z-index: 99;
+     text-align: center;
+  }
+
+  #loading > img {
+     position: absolute;
+     top: 30%;
+     left: 25%;
+     z-index: 100;
+  }
+   #loading > p {
+       position: absolute;
+       top: 54%;
+       left: 43%;
+       z-index: 101;
+    }
+</style>
+
+
   <body>
     <div class="m-2">
       <!-- 네비게이션 바 -->
@@ -98,7 +148,17 @@
       <button class="btn2-hover color-3" type="submit" id="upload" style="font-size: 12px;">녹음 파일 전송</button><br>
     </div>
     
+
+    
+    <div id="loading" style="margin-left: 0px;">
+      <img src="https://www.railtrip.co.kr/image/loading2.gif">
+      <p>로딩중입니다..</p>
+  </div>
+
+    
     <audio id="audio" controls></audio>
+
+    <button class = "btn-hover color-2" type="submit" id="lodingBtn">음성 분석 결과 보기</button>
 
     <!-- bootstrap js -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
