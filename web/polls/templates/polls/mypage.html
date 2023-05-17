@@ -107,7 +107,7 @@
       <br><br>
 <!-- 내 정보 html 코드 끝-->
 
-<div stlye="text-align=center">
+<div style="text-align:center">
   <p class="logs" style="font-family: 'SBAggroB'; font-size: 25px; margin: 10px">
     <span class="linear_gradient">녹음 파일 목록</span>🗂️
   </p>
@@ -120,18 +120,12 @@
         Your browser does not support the audio element.
       </audio>
       <p>업로드 날짜: {{ recording.uploaded_at|date:"Y-m-d H:i:s" }}</p>
-      <p>성별: {{recording.gender}}</p>
-      {% if emotions %}
-      <p>감정 비율:</p>
-          <ul>
-            {% for emotion, ratio in emotions.emotions_ratio.items %}
-            <li>{{ emotions.emotion }}: {{ emotions.ratio }}%</li>
-            {% endfor %}
-          </ul>
-          <p>가장 큰 감정: {{ emotions.max_emotion }}</p>
-      {% endfor %}
+      <p>성별: {{ recording.gender }}</p>
+      {% if recording.emotion_result %}
+        <p>감정: {{ recording.emotion_result.ratio }}</p>  <!-- 수정 -->
+        <p>감정 비율: {{ recording.emotion_result.emotion }}</p>  <!-- 수정 -->
       {% else %}
-      <p class="logs">감정분석이 없습니다.</p>
+        <p class="logs">감정분석이 없습니다.</p>
       {% endif %}
     </li>
     {% endfor %}
@@ -139,6 +133,7 @@
   {% else %}
   <p class="logs">녹음 파일이 없습니다.</p>
   {% endif %}
+</div>
   
 
 <p class = "logs" style="font-family: 'SBAggroB';font-size: 25px; margin:10px"><span class = "linear_gradient">분석내역 </span>🗂️</p>

@@ -2,6 +2,7 @@
 const $audioEl = document.querySelector("audio");
 const $btn = document.getElementById("record");
 const $uploadBtn = document.getElementById("upload");
+const $gif = document.getElementById("gif"); // 이미지 엘리먼트
 
 // 녹음중 상태 변수
 let isRecording = false;
@@ -35,11 +36,16 @@ $btn.onclick = async function (event) {
     // 녹음 시작 (timeslice 매개변수를 전달하여 일정 간격으로 녹음 데이터를 저장)
     mediaRecorder.start(100);
     isRecording = true;
+    $gif.src = "../../static/asset/sound_recording.jpg"; // 이미지 변경
   } else {
     // 녹음 종료
     mediaRecorder.stop();
-    isRecording = false;
-    $uploadBtn.disabled = true; // 녹음 종료 후 파일 업로드 버튼 비활성화
+
+    mediaRecorder.onstop = () => {
+      $gif.src = "../../static/asset/sound_stop.jpg"; // 이미지 변경
+      isRecording = false;
+      $uploadBtn.disabled = true; // 녹음 종료 후 파일 업로드 버튼 비활성화
+    };
   }
 };
 

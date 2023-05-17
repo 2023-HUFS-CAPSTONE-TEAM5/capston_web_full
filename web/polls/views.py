@@ -17,6 +17,8 @@ import numpy as np
 import pandas as pd
 import warnings
 import sys
+import soundfile
+import subprocess
 
 # ignore warnings
 if not sys.warnoptions:
@@ -71,27 +73,41 @@ def mypage(request):
         )
         recording.save()
 
-        emotions = EmotionResult(
-            emotion=request.POST.get("max_emotion"),
-            ratio=request.POST.get("emotions_ratio"),
-        )
-        emotions.save()
-        if not emotions.emotion:
-            emotions.emotion = "아무것도 안들어감"
+        # print(f"mypage- {emotions}")
 
+        if not request.POST.get("max_emotion"):
+            max_emotion = "감정 없음"
+        else:
+            max_emotion = request.POST.get("max_emotion")
+
+        if not request.POST.get("emotions_ratio"):
+            emotions_ratio = "비율 없음"
+        else:
+            emotions_ratio = request.POST.get("emotions_ratio")
+
+        recording.emotion_result = EmotionResult(
+            emotion=max_emotion, ratio=emotions_ratio
+        )
+        recording.emotion_result.save()
+        recording.save()
+
+        # print(f"mypage = {emotions.ratio}")
+        # print(f"mypage- emotion = {emotions.emotion}")
         return JsonResponse(
             {
                 "id": recording.id,
                 "uploaded_at": recording.uploaded_at.strftime("%Y-%m-%d %H:%M:%S"),
                 "gender": recording.gender,
-                "emotions_ratio": emotions.ratio,
-                "max_emotion": emotions.emotion,
+                "emotions_ratio": recording.emotion_result.emotion,
+                "max_emotion": recording.emotion_result.ratio,
             }
         )
 
     else:
         recordings = VoiceRecording.objects.all()
-        context = {"recordings": recordings, "emotions": emotions}
+        # emotions = EmotionResult.objects.all()
+        # context = {"recordings": recordings, "emotions": emotions}
+        context = {"recordings": recordings}
         return render(request, "polls/mypage.html", context)
 
 
@@ -115,58 +131,68 @@ def MELSpectrogram(signal, sample_rate):
     return mel_spec_db
 
 
-def generate_pkl(INPUT_WAV_PATH):
-    SAMPLE_RATE = 48000  # 1차 모델용 샘플 레이트
+def generate_pkl(INPUT_WAV_PATH):  # 입력된 wav 파일을 .pkl(입력 음성의 경로, 멜스펙트로그램 포함) 형식으로 변환
+    SAMPLE_RATE = 48000  # 1차 모델용 sr
     DURATION = 3.0
-    SPLIT_LENGTH = 3000  # 3초 단위 분할 길이
+    SPLIT_LENGTH = 3000  # 3초 단위 분할
 
     df_path = pd.DataFrame(columns=["path"])
     df_mel = pd.DataFrame(columns=["feature"])
 
+    print(f"generate_wav_path:{INPUT_WAV_PATH}")
+
+    file_name = INPUT_WAV_PATH.split("/")[-1].split(".")[0]
+
     audio, _ = librosa.load(
         INPUT_WAV_PATH, duration=DURATION, offset=0.0, sr=SAMPLE_RATE
     )
-    audio, _ = librosa.effects.trim(audio, top_db=60)  # 묵음 처리
+    # audio, _ = librosa.effects.trim(audio, top_db=60)  # 묵음 처리
 
-    # 3초 단위로 분할
-    audio = (audio * 32767).astype(np.int16)  # 오디오를 16비트 정수로 변환
+    # TEMP_SAVE_DIR = "media/audio/trim"
+    # if not os.path.exists(TEMP_SAVE_DIR):
+    #     os.makedirs(TEMP_SAVE_DIR)
 
-    # 분할된 파일들을 저장할 디렉토리 생성
-    OUTPUT_DIR = os.path.join("media", "audio", "split")  # 3초 단위로 잘린 파일들이 저장될 폴더 경로
+    # TARGET_PATH = os.path.join(
+    #     TEMP_SAVE_DIR, f"{file_name}.wav"
+    # )  # 묵음 처리된 음성 데이터를 임시로 저장할 경로
+    # soundfile.write(TARGET_PATH, audio, SAMPLE_RATE, format="wav")
 
+    # 분할된 파일들이 저장될 디렉토리 생성
+    OUTPUT_DIR = "media/audio/split"  # 3초 단위로 잘린 파일들 저장할 "폴더" 경로
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
 
-    print(audio[::SPLIT_LENGTH])
-    for i in range(0, len(audio), SPLIT_LENGTH):
-        chunk = audio[i : i + SPLIT_LENGTH]
-        print(chunk)
-        OUTPUT_PATH = os.path.join(OUTPUT_DIR, f"splited_audio{i}.wav")
-        pydub.AudioSegment(
-            chunk.tobytes(), frame_rate=SAMPLE_RATE, sample_width=2, channels=1
-        ).export(OUTPUT_PATH, format="wav")
+    # 3초 단위로 분할
+    print(f"for문 반복 {(len(audio) // SPLIT_LENGTH) + 1}")
+    print(f"audio len = {len(audio)}")
+    print(f"wav path: {INPUT_WAV_PATH}")
+    audio = AudioSegment.from_wav(INPUT_WAV_PATH)  # AudioSegment 객체 생성
+    print(f"generate_audio:{len(audio)}")
+
+    # 3초 단위로 분할
+    for i in range((len(audio) // SPLIT_LENGTH) + 1):
+        audio = AudioSegment.from_wav(INPUT_WAV_PATH)
+        slice = audio[i * SPLIT_LENGTH : SPLIT_LENGTH * (i + 1)]
+        OUTPUT_PATH = os.path.join(OUTPUT_DIR, f"splited_audio{i}.wav")  # 분할된 파일 이름 지정
+        print(f"-----------------{i}번쨰 OUTPUT_PATH")
+        slice.export(OUTPUT_PATH, format="wav")  # AudioSegment 객체로부터 wav 파일 생성
         df_path.loc[i] = OUTPUT_PATH
 
-        temp_audio = np.zeros((int(SAMPLE_RATE * DURATION),))
-        temp_audio[: len(chunk)] = librosa.load(OUTPUT_PATH, sr=SAMPLE_RATE)[
-            0
-        ]  # OUTPUT_PATH에서 음성 데이터 로드하여 temp_audio에 할당
-
+        temp_audio = np.zeros(int(SAMPLE_RATE * DURATION))
+        audio, _ = librosa.load(
+            OUTPUT_PATH, duration=DURATION, offset=0.5, sr=SAMPLE_RATE
+        )
+        temp_audio[: len(audio)] = audio
         mel = MELSpectrogram(temp_audio, sample_rate=SAMPLE_RATE)
         df_mel.loc[i] = [mel]
-    print(SPLIT_LENGTH)
+
+    PKL_DIR = "media/audio/pkl/"
+    # 디렉토리가 존재하지 않으면 생성합니다
+    os.makedirs(PKL_DIR, exist_ok=True)
 
     df = pd.concat([df_path, df_mel], axis=1)
-
-    # .pkl(test 데이터) 저장할 경로 설정
-    PKL_PATH = os.path.join("media", "audio", "test")
-
-    if not os.path.exists(PKL_PATH):
-        os.makedirs(PKL_PATH)
-
-    df.to_pickle(os.path.join(PKL_PATH, "test.pkl"))
-    PKL_LOCATION = os.path.join(PKL_PATH, "test.pkl")
-    print("여기까진 작동 잘됨")
+    df.to_pickle(PKL_DIR + "test.pkl")
+    PKL_LOCATION = os.path.join(PKL_DIR, "test.pkl")
     return PKL_LOCATION
 
 
@@ -184,9 +210,6 @@ class Voice_dataset(Dataset):
 
     def __getitem__(self, idx):
         voice = dict()
-        voice_labels = self.df.iloc[idx, 0].split("\\")[-1].split(".")[0].split("-")
-        print(f"voice_labels = {len(voice_labels)}")
-        voice["emotion"] = int(voice_labels[2]) - 1
         voice["features"] = self.df.iloc[idx, 1]
         return voice
 
@@ -305,11 +328,8 @@ def print_test_result(emotions_dict):
 
     emotion_ratio = {}
     for emotion in total_count.keys():
-        if total_count[emotion] == 0:
-            print("print_test-----emotion 빈값")
-        else:
-            emotion_ratio[emotion] = round((total_count[emotion] / total) * 100, 2)
-            print(f"{emotion} : {(total_count[emotion] / total) * 100:.2f}%")
+        emotion_ratio[emotion] = round((total_count[emotion] / total) * 100, 2)
+        print(f"{emotion} : {(total_count[emotion] / total) * 100:.2f}%")
 
     max_emotion = max(total_count, key=total_count.get)
     # print(f'가장 큰 비율을 차지하고 있는 감정은 "{max_emotion}" 입니다.')
@@ -356,9 +376,18 @@ def convert_webm_to_wav(webm_path, wav_dir):
     wav_file_name = f"{file_name_without_extension}.wav"
     wav_file_path = os.path.join(wav_dir, wav_file_name)
 
-    # ffmpeg를 사용하여 webm 파일을 wav로 변환
-    command = f'ffmpeg -i "{webm_path}" -acodec pcm_s16le -ar 16000 "{wav_file_path}"'
-    subprocess.call(command, shell=True)
+    # FFmpeg를 사용하여 webm 파일을 wav로 변환
+    command = [
+        "ffmpeg",
+        "-i",
+        webm_path,
+        "-acodec",
+        "pcm_s16le",
+        "-ar",
+        "48000",
+        wav_file_path,
+    ]
+    subprocess.run(command, check=True)
 
     return wav_file_path
 
@@ -381,21 +410,21 @@ def recording(request):
 
             # 변환된 wav 파일을 저장할 경로
             wav_path = convert_webm_to_wav(temp_path, wav_dir)
-
+            print(f"recording_wav path:{wav_path}, temp_path :{temp_path}")
             # 변환 후에는 임시 파일 삭제
             os.remove(temp_path)
 
-            print(wav_path)
-
             # 파일이 올바르게 첨부된 경우
             # 파일을 읽어들이고 데이터베이스에 저장
-            file_name = os.path.splitext(audio_file.name)[0] + ".wav"
-            file_path = os.path.join(wav_dir, file_name)
-            file_name = default_storage.save(file_path, ContentFile(audio_file.read()))
-            recording = VoiceRecording(audio_file=file_name, gender=gender)
+            file_path = default_storage.save(wav_path, audio_file)
+            recording = VoiceRecording(audio_file=file_path, gender=gender)
             recording.save()
 
+            print(f"recording_wav_path= {wav_path}")
+            print(f"recording_wav_path= {file_path}")
             # 감정 분석
+            ###경로 처리
+            # file_path = "media/" + file_path
             PKL_LOCATION = generate_pkl(wav_path)
             print(PKL_LOCATION)
             test_set = Voice_dataset(pkl_location=PKL_LOCATION)
@@ -431,13 +460,21 @@ def recording(request):
             elif recording.gender == "female":
                 emotions_ratio, max_emotion = test(model, test_loader, path=FEMALE_PATH)
 
+            result = EmotionResult(emotion=max_emotion, ratio=emotions_ratio)
+            result.save()
+
+            recording.emotion_result = result
+            recording.save()
+
+            print(result.emotion)
+            print(f"recording-{result.ratio}")
             return JsonResponse(
                 {
                     "id": recording.id,
                     "uploaded_at": recording.uploaded_at.strftime("%Y-%m-%d %H:%M:%S"),
                     "gender": recording.gender,
-                    "emotions_ratio": emotions_ratio,
-                    "max_emotion": max_emotion,
+                    "emotions_ratio": result.ratio,
+                    "max_emotion": result.emotion,
                 }
             )
     return render(request, "polls/recording.html")
