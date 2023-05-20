@@ -37,6 +37,14 @@ $btn.onclick = async function (event) {
     mediaRecorder.start(100);
     isRecording = true;
     $gif.src = "../../static/asset/sound_recording.jpg"; // 이미지 변경
+
+    const timeLimit = 60000; // 1분 (60,000ms)
+    setTimeout(() => {
+      if (isRecording) {
+        mediaRecorder.stop();
+        alert("1분 녹음 제한으로 인해 녹음이 중지되었습니다.");
+      }
+    }, timeLimit);
   } else {
     // 녹음 종료
     mediaRecorder.stop();

@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 # Create your models here.
 # 음성 녹음 데이터를 저장할 모델을 정의
@@ -10,7 +11,7 @@ from django.db import models
 
 class VoiceRecording(models.Model):
     audio_file = models.FileField(upload_to="audio")
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_at = models.DateTimeField(default=timezone.now)
     gender = models.CharField(max_length=10)
     emotion_result = models.OneToOneField(
         "EmotionResult", on_delete=models.CASCADE, null=True, blank=True
