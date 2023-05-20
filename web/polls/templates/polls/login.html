@@ -1,34 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>login</title>
-    <link rel="stylesheet" href="../../static/css/login.css" async>
-</head>
-<body>
+    <link rel="stylesheet" href="../../static/css/login.css" async />
+  </head>
+  <body>
     <header>
-        <nav class="navbar navbar-expand-md bg-body-tertiary">
-          <div class="container-fluid">
-            <a class="navbar-brand" href="../">
-              <img src="../../static/asset/logo.png" alt="로고" style="max-height: 100px" />
-            </a>
-          </div>
-        </nav>
-      </header>
+      <nav class="navbar navbar-expand-md bg-body-tertiary">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="../">
+            <img
+              src="../../static/asset/logo.png"
+              alt="로고"
+              style="max-height: 100px"
+            />
+          </a>
+        </div>
+      </nav>
+    </header>
     <div id="divPosition">
-    <div class="login-wrapper">
+      <div class="login-wrapper">
         <h2>로그인</h2>
-        <form method="post" action="서버의url" id="login-form">
-            <input type="text" name="userName" placeholder="Email"><br>
-            <input type="password" name="userPassword" placeholder="Password"><br>
-            <br> 이메일 찾기/비밀찾기  &nbsp;&nbsp;&nbsp;&nbsp;  <a href="../signUp/">회원가입</a>
-            <!-- submit으로 바꾸기 -->
-            <button class = "btn-hover color-2" onClick="location.href='../recording/'; return false;">로그인</button>
-        </form>       
+        <form method="post" action="{% url 'login' %}" id="login-form">
+          {% csrf_token %}
+          <input type="text" name="userName" placeholder="Email" /><br />
+          <input
+            type="password"
+            name="userPassword"
+            placeholder="Password"
+          /><br />
+          {% if error %}
+          <p>{{ error }}</p>
+          {% endif %}
+          <br />
+          <!-- 이메일 찾기/비밀찾기 &nbsp;&nbsp;&nbsp;&nbsp; -->
+          <a href="../signUp/">회원가입</a><br />
+          <button class="btn-hover color-2" type="submit">로그인</button>
+        </form>
+      </div>
     </div>
-</div>
-</div>
-</body>
+  </body>
 </html>

@@ -5,8 +5,27 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SignUp</title>
+    <link rel="stylesheet" href="../../static/css/bootstrap.min.css" />
     <link rel="stylesheet" href="../../static/css/login.css" async />
   </head>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var form = document.getElementById("login-form");
+
+      form.addEventListener("submit", function (event) {
+        var password = form.elements.userPassword.value;
+        var passwordCheck = form.elements.userPasswordCheck.value;
+        console.log("회원가입 버튼 눌렀음");
+        if (password !== passwordCheck) {
+          event.preventDefault(); // 양식 제출 방지
+          var errorElement = document.createElement("p");
+          errorElement.textContent = "비밀번호가 일치하지 않습니다.";
+          form.appendChild(errorElement);
+        }
+      });
+    });
+  </script>
+
   <body>
     <header>
       <nav class="navbar navbar-expand-md bg-body-tertiary">
@@ -21,11 +40,13 @@
         </div>
       </nav>
     </header>
+
     <div id="divPosition">
       <div class="login-wrapper">
         <h2>회원가입</h2>
-        <form method="post" action="서버의url" id="login-form">
-          <input type="text" name="userEmail" placeholder="Email" />
+        <form method="post" action="/polls/signUp/" id="login-form">
+          {% csrf_token %}
+          <input type="text" name="userName" placeholder="Email" />
           <input
             type="password"
             name="userPassword"
@@ -36,13 +57,13 @@
             name="userPasswordCheck"
             placeholder="패스워드 확인"
           /><br />
-          <input type="text" name="userName" placeholder="이름" /><br />
+          <input type="text" name="name" placeholder="이름" /><br />
           <label for="male">남성</label>
           <input
             id="male"
             type="radio"
             value="남성"
-            name="ss"
+            name="gender"
             style="width: 20px; height: 20px"
           />
           &nbsp;&nbsp;&nbsp;&nbsp;
@@ -52,24 +73,32 @@
             type="radio"
             checked
             value="여성"
-            name="ss"
+            name="gender"
             style="width: 20px; height: 20px"
           />
           <select name="job" style="width: 300px">
-            <option label="학생"></option>
-            <option label="대학생"></option>
-            <option label="직장인"></option>
-            <option label="전업주무"></option>
-            <option label="무직"></option></select
+            <option value="" disabled selected hidden>직업 선택</option>
+            <option value="학생">학생</option>
+            <option value="대학생">대학생</option>
+            <option value="직장인">직장인</option>
+            <option value="전업주무">전업주무</option>
+            <option value="무직">무직</option></select
           ><br /><br />
           <input type="number" name="age" placeholder="나이" /><br />
-          <button
-            class="btn-hover color-2"
-            onClick="location.href='../login/'; return false;"
-          >
-            회원가입
-          </button>
+          <button class="btn-hover color-2" type="submit">회원가입</button>
         </form>
+        {% if signup_success %}
+        <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+        <script>
+          swal(
+            "회원가입이 완료되었습니다.",
+            "로그인 페이지로 이동합니다!",
+            "success"
+          ).then(function () {
+            window.location.href = "{% url 'login' %}";
+          });
+        </script>
+        {% endif %}
       </div>
     </div>
   </body>

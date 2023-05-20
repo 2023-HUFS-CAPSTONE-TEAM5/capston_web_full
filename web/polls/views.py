@@ -4,6 +4,8 @@ from django.http import HttpResponse
 from django.template import loader
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
+from django.contrib.auth import get_user_model
+
 
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
@@ -56,16 +58,68 @@ def analysis(request):
     return render(request, "polls/analysis.html")
 
 
+from django.contrib.auth import authenticate, login as user_login
+
+
 def login(request):
     template = loader.get_template("polls/login.html")
+
+    if request.method == "POST":
+        username = request.POST.get("userName")
+        password = request.POST.get("userPassword")
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            print("로그인 완료")
+            user_login(request, user)
+            return redirect("mypage")  # 로그인 성공 시 리디렉션할 페이지 URL 이름으로 'mypage'을 대체해주세요
+        else:
+            return render(request, "polls/login.html", {"error": "유효하지 않은 로그인 정보입니다."})
+
     return render(request, "polls/login.html")
 
 
+User = get_user_model()
+
+
 def signUp(request):
-    template = loader.get_template("polls/signUp.html")
+    if request.method == "POST":
+        email = request.POST.get("userEmail")
+        password = request.POST.get("userPassword")
+        password_check = request.POST.get("userPasswordCheck")
+        name = request.POST.get("userName")
+        gender = request.POST.get("gender")  # 수정된 부분: 'gender' 필드에 대한 값을 받아옴
+        job = request.POST.get("job")
+        age = request.POST.get("age")
+        print(email, name, gender)
+        if gender == "여성":
+            gender = "F"
+        else:
+            gender = "M"
+        if password == password_check:
+            user = User.objects.create_user(
+                username=name, email=email, password=password, gender=gender, age=age
+            )
+            user.name = name
+            user.occupation = job
+            user.save()
+
+            # 추가 동작 또는 리디렉션 수행
+            print("회원가입 완료")
+            return redirect("login")  # 실제 로그인 페이지 URL 이름으로 'login'을 대체해주세요
+
+        # 비밀번호 불일치 오류 처리
+
+        return render(request, "polls/signUP.html", {"error": "비밀번호가 일치하지 않습니다."})
+
     return render(request, "polls/signUP.html")
 
 
+from django.contrib.auth.decorators import login_required
+
+
+@login_required
 def mypage(request):
     from .models import VoiceRecording, EmotionResult
 
@@ -76,8 +130,6 @@ def mypage(request):
             uploaded_at=timezone.now(),
         )
         recording.save()
-
-        # print(f"mypage- {emotions}")
 
         if not request.POST.get("max_emotion"):
             max_emotion = "감정 없음"
@@ -109,9 +161,8 @@ def mypage(request):
         )
 
     else:
-        recordings = VoiceRecording.objects.all()
-        # emotions = EmotionResult.objects.all()
-        # context = {"recordings": recordings, "emotions": emotions}
+        user = request.user
+        recordings = VoiceRecording.objects.filter(user=user)
         context = {"recordings": recordings}
         return render(request, "polls/mypage.html", context)
 
@@ -171,9 +222,6 @@ def generate_pkl(INPUT_WAV_PATH):  # 입력된 wav 파일을 .pkl(입력 음성�
     df = pd.concat([df_path, df_mel], axis=1)
     df.to_pickle(PKL_DIR + "test.pkl")
     PKL_LOCATION = os.path.join(PKL_DIR, "test.pkl")
-    for i in df_mel:
-        print(round(int(i), 5))
-    # print(f"PKL = {round(df_mel, 5)}")
     return PKL_LOCATION
 
 
@@ -337,6 +385,7 @@ def convert_webm_to_wav(webm_path, wav_dir):
     return wav_file_path
 
 
+@login_required
 def recording(request):
     from .models import VoiceRecording, EmotionResult
 
@@ -362,8 +411,13 @@ def recording(request):
             # 파일이 올바르게 첨부된 경우
             # 파일을 읽어들이고 데이터베이스에 저장
             file_path = default_storage.save(wav_path, audio_file)
+
+            user_id = request.user.id
             recording = VoiceRecording(
-                audio_file=file_path, gender=gender, uploaded_at=timezone.now()
+                audio_file=file_path,
+                gender=gender,
+                uploaded_at=timezone.now(),
+                user_id=user_id,
             )
             recording.save()
 
