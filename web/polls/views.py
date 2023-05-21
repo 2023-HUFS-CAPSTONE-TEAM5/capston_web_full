@@ -85,11 +85,11 @@ User = get_user_model()
 
 def signUp(request):
     if request.method == "POST":
-        email = request.POST.get("userEmail")
+        email = request.POST.get("userName")
         password = request.POST.get("userPassword")
         password_check = request.POST.get("userPasswordCheck")
-        name = request.POST.get("userName")
-        gender = request.POST.get("gender")  # 수정된 부분: 'gender' 필드에 대한 값을 받아옴
+        name = request.POST.get("name")
+        gender = request.POST.get("gender")
         job = request.POST.get("job")
         age = request.POST.get("age")
         print(email, name, gender)
@@ -99,7 +99,7 @@ def signUp(request):
             gender = "M"
         if password == password_check:
             user = User.objects.create_user(
-                username=name, email=email, password=password, gender=gender, age=age
+                username=email, email=email, password=password, gender=gender, age=age
             )
             user.name = name
             user.occupation = job
@@ -107,7 +107,8 @@ def signUp(request):
 
             # 추가 동작 또는 리디렉션 수행
             print("회원가입 완료")
-            return redirect("login")  # 실제 로그인 페이지 URL 이름으로 'login'을 대체해주세요
+            # 회원가입 성공 시 'signup_success' 변수를 전달하여 템플릿에서 사용할 수 있도록 함
+            return render(request, "polls/signUP.html", {"signup_success": True})
 
         # 비밀번호 불일치 오류 처리
 
@@ -432,7 +433,7 @@ def recording(request):
             print("test_set길이: " + str(len(test_set)))
 
             MALE_PATH = "C:\\Users\\yttn0\\Desktop\\git\\capston_web_full\\web\\polls\\pth\\2nd_best_model_epoch_55.pth"
-            FEMALE_PATH = "C:\\Users\\yttn0\\Desktop\\git\\capston_web_full\\web\\polls\\pth\\female_best_model_epoch_110.pth"
+            FEMALE_PATH = "C:\\Users\\yttn0\\Desktop\\git\\capston_web_full\\web\\polls\\pth\\2nd_best_model_epoch_26_train2.pth"
 
             # 초기 모델 선언 (모델 구조 저장)
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
